@@ -17,7 +17,7 @@ For an existing local installation, rebuild and use `bb plugin reload live-voice
 The browser and server parts of the plugin are built separately, so the source keeps them apart:
 
 - `src/app/` holds the voice controls, audio handling and styles that run in the browser.
-- `src/server/` holds what runs on the BB server: call sessions, native Codex voice, the Claude voice connection and request handling, the model-facing instructions in `prompts.ts`, and diagnostics storage.
+- `src/server/` holds what runs on the BB server: call sessions, native Codex voice, the Claude voice connection and request handling, the model-facing instructions in `prompts.ts`, and diagnostics storage. `storage.ts` holds the plugin database migrations. Existing migrations must never change; add new ones at the end.
 - `src/server/briefing/` prepares, stores and checks cached briefings.
 - `src/shared/` holds request formats and helpers that both sides need.
 

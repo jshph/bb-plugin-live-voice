@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import type { TraceEntry } from '../shared/trace';
 import { createPlugin } from './index';
+import { openDatabase } from './storage';
 import { createTraceStore } from './trace-store';
 
 const sessionId = 'a77bc81a-9777-466c-b231-e04784794cf6';
@@ -28,7 +29,7 @@ describe('diagnostic tracing', () => {
   it('bounds retained calls and bytes, reports drops, and returns stable cursor pages', async () => {
     const { bb, harness } = createFakePluginHost({ pluginId: 'live-voice' });
     try {
-      const store = createTraceStore(bb);
+      const store = createTraceStore(openDatabase(bb));
       for (let i = 0; i < 21; i++) store.start('call-' + i, 'thread', 'native');
       expect(store.list()).toHaveLength(20);
       store.start(sessionId, 'thread', 'native', 'detailed');
@@ -65,7 +66,7 @@ it('enforces the frozen diagnostics policy at ingestion, including after call en
 it('reserves capacity for stop and failure evidence after detailed content reaches its limit', async () => {
   const { bb, harness } = createFakePluginHost({ pluginId: 'live-voice' });
   try {
-    const store = createTraceStore(bb);
+    const store = createTraceStore(openDatabase(bb));
     store.start(sessionId, 'thread', 'native', 'detailed');
     for (let seq = 1; seq <= 100; seq++) store.write(sessionId, 'browser', [{ ...entry, seq, data: { text: 'x'.repeat(32000) } }]);
     store.write(sessionId, 'server', [{ ...entry, seq: 101, name: 'session.failed', data: { reason: 'connection' } }, { ...entry, seq: 102, name: 'session.stop', data: {} }]);

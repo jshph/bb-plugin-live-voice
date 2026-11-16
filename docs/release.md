@@ -6,9 +6,9 @@ Tandem 0.3.3 is an experimental source preview distributed under the MIT license
 
 - Builds against published Plugin SDK 0.6.144; the installed BB must support the SDK surfaces in use.
 - Native Codex requires access to the backing thread’s existing Codex connection. The plugin prefers the proposed `threads.experimental_voice` operation and retains the customized `threads.voice` operation for the current installation. No second writer or API-key fallback is supported.
-- Native cached briefing requires the startup-briefing bridge, introduced with host protocol 269. Native voice selection requires the voice-selection extension, introduced with protocol 270.
+- Native cached briefing requires the startup-briefing bridge, introduced with host protocol 269. Tandem sends the startup-briefing field on every native call, null when no briefing is ready, so that Cached briefing off stays retrieval-only on both bridges. Bridges older than protocol 269 have not been tested with it. Native voice selection requires the voice-selection extension, introduced with protocol 270.
 - New-thread voice requires input-free thread initialization, introduced with protocol 271. Older BB versions reject that creation request.
-- Claude transport requires an official Codex CLI signed in with ChatGPT on the BB server; Codex 0.160.1 has been exercised. Its experimental protocol may change.
+- Claude transport requires an official Codex CLI signed in with ChatGPT on the BB server; Codex 0.160.1 has been exercised. Its experimental protocol may change. Tandem stops the temporary Codex realtime session and archives its thread as soon as it receives the SDP answer. Claude audio relies on the negotiated browser connection surviving that detachment. This is observed Codex behavior, not a documented guarantee; re-verify it with a fresh Claude call after each Codex upgrade.
 
 These protocol numbers identify customized BB changes, not a stock-release compatibility guarantee. The supporting core changes are a separate dependency; this plugin source alone does not install them. See [maintainer context](maintainers.md) for the independent upstream PRs and the difference between the proposed API and the deployed custom build.
 

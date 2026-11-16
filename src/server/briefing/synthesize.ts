@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { CodexConnection, requireSubscriptionAccount } from '../codex-app-server';
+import { clientInfo, CodexConnection, requireSubscriptionAccount } from '../codex-app-server';
 import { briefingInstructions } from '../prompts';
 import { briefingSchema, validateBriefing, type Evidence } from './briefing';
 
@@ -25,7 +25,7 @@ export async function synthesizeBriefing(evidence: Evidence, command: string, si
   const timer = setTimeout(cancel, 90000);
   try {
     if (signal.aborted) throw new Error('Briefing preparation cancelled');
-    await connection.request('initialize', { clientInfo: { name: 'bb-voice-briefing', version: '0.3.0' }, capabilities: { experimentalApi: true } });
+    await connection.request('initialize', { clientInfo: clientInfo('bb-voice-briefing'), capabilities: { experimentalApi: true } });
     requireSubscriptionAccount(await connection.request('account/read', { refreshToken: false }));
     const result = z.object({ thread: z.object({ id: z.string() }) }).parse(await connection.request('thread/start', {
       cwd, ephemeral: true, approvalPolicy: 'never', sandbox: 'read-only', baseInstructions: briefingInstructions,

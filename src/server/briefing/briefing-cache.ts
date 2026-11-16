@@ -1,12 +1,12 @@
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
+import type { Database } from '../storage';
 import { z } from 'zod';
 import type { BriefingStatus as Status } from '../../shared/contract';
 import { startupReference } from '../prompts';
 import { briefingEvidence, briefingRevision, type Evidence } from './briefing';
 
 const rowSchema = z.object({ revision: z.string().nullable(), generated_at: z.number().nullable(), text: z.string().nullable(), status: z.string(), error: z.string().nullable() });
-type Db = ReturnType<BbPluginApi['storage']['database']>;
-export function createBriefingCache(bb: BbPluginApi, db: Db, generate: (source: Evidence, signal: AbortSignal) => Promise<string>) {
+export function createBriefingCache(bb: BbPluginApi, db: Database, generate: (source: Evidence, signal: AbortSignal) => Promise<string>) {
   const queue = new Set<string>();
   let worker: Promise<void> | null = null, current: { threadId: string; abort: AbortController } | null = null, disposed = false;
   function watched(threadId: string): boolean { return !!db.prepare('SELECT thread_id FROM voice_briefings WHERE thread_id = ?').get(threadId); }

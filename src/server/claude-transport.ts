@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { voiceSchema, type Voice } from '../shared/voices';
-import { CodexConnection, requireSubscriptionAccount } from './codex-app-server';
+import { clientInfo, CodexConnection, requireSubscriptionAccount } from './codex-app-server';
 import { claudeVoiceInstructions, noBriefing } from './prompts';
 
 /**
@@ -22,7 +22,7 @@ export async function createSubscriptionCall(sdp: string, command = 'codex', sta
   }, command);
   const timer = setTimeout(() => rejectSdp(new Error('Codex voice connection timed out')), 35000);
   try {
-    await connection.request('initialize', { clientInfo: { name: 'bb-live-voice', version: '0.2.0' }, capabilities: { experimentalApi: true } });
+    await connection.request('initialize', { clientInfo: clientInfo('bb-live-voice'), capabilities: { experimentalApi: true } });
     requireSubscriptionAccount(await connection.request('account/read', { refreshToken: false }));
     const thread = z.object({ thread: z.object({ id: z.string() }) }).parse(await connection.request('thread/start', { approvalPolicy: 'never', sandbox: 'read-only' }));
     nativeThreadId = thread.thread.id;

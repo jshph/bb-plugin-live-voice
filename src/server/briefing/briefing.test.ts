@@ -4,7 +4,7 @@ import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { startupReference } from '../prompts';
 import { briefingEvidence, briefingRevision, validateBriefing } from './briefing';
 import { createBriefingCache } from './briefing-cache';
-import { createTraceStore } from '../trace-store';
+import { openDatabase } from '../storage';
 import { createPlugin } from '../index';
 import type { NativeVoiceCommand } from '../native';
 
@@ -61,7 +61,7 @@ it('returns immediately on cache miss, discards a changed revision and prepares 
   const f = fixture();
   const results: ((text: string) => void)[] = [];
   const generate = vi.fn(() => new Promise<string>(resolve => results.push(resolve)));
-  const cache = createBriefingCache(f.bb, createTraceStore(f.bb).database, generate);
+  const cache = createBriefingCache(f.bb, openDatabase(f.bb), generate);
   try {
     expect(await cache.startup('thread')).toBeNull();
     await vi.waitFor(() => expect(results).toHaveLength(1));
@@ -79,7 +79,7 @@ it('returns immediately on cache miss, discards a changed revision and prepares 
 });
 it('falls back after compiler failure and removes cached history when forgotten', async () => {
   const f = fixture();
-  const cache = createBriefingCache(f.bb, createTraceStore(f.bb).database, async () => { throw new Error('subscription unavailable'); });
+  const cache = createBriefingCache(f.bb, openDatabase(f.bb), async () => { throw new Error('subscription unavailable'); });
   try {
     await cache.request('thread');
     await vi.waitFor(async () => expect((await cache.inspect('thread')).state).toBe('error'));

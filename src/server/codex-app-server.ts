@@ -1,6 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
+import { version } from '../../package.json';
+
+/** Identifies Tandem to the Codex app-server, using the plugin manifest's version. */
+export function clientInfo(name: 'bb-live-voice' | 'bb-voice-briefing') { return { name, version }; }
 
 const frame = z.object({ id: z.union([z.number(), z.string()]).optional(), method: z.string().optional(), params: z.unknown().optional(), result: z.unknown().optional(), error: z.object({ message: z.string() }).optional() });
 
