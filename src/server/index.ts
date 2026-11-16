@@ -33,13 +33,17 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
       forgetBriefing: ({ threadId }) => { briefings.forget(threadId); return { forgotten: true }; },
       available: async ({ threadId }) => { const thread = await bb.sdk.threads.get({ threadId }); return { available: supportsVoice(thread.providerId) }; },
       start: async ({ sessionId, threadId, sdp }) => {
-        const thread = await bb.sdk.threads.get({ threadId });
-        sessions.assertCanOpen(sessionId, threadId);
-        const callConfig = await settings.get();
-        const voice = selectedVoice(callConfig.voice);
-        const adapter: Session['adapter'] = thread.providerId === 'codex' ? 'native' : 'delegated';
-        const session = newSession({ id: sessionId, threadId, adapter, backgroundMode: callConfig.cachedBriefing ? 'cached' : 'off', title: thread.title, diagnostics: callConfig.diagnostics as Diagnostics, warn: rateLimitedWarning(() => bb.log.warn('Voice diagnostic records could not be saved')), nativeWorking: thread.status === 'active' });
-        sessions.add(session);
+        const reservation = sessions.reserve(sessionId, threadId);
+        let session: Session, voice: Voice | undefined, adapter: Session['adapter'];
+        try {
+          const thread = await bb.sdk.threads.get({ threadId });
+          if (reservation.cancelled) throw new Error('Voice call ended while connecting.');
+          const callConfig = await settings.get();
+          voice = selectedVoice(callConfig.voice);
+          adapter = thread.providerId === 'codex' ? 'native' : 'delegated';
+          session = newSession({ id: sessionId, threadId, adapter, backgroundMode: callConfig.cachedBriefing ? 'cached' : 'off', title: thread.title, diagnostics: callConfig.diagnostics as Diagnostics, warn: rateLimitedWarning(() => bb.log.warn('Voice diagnostic records could not be saved')), nativeWorking: thread.status === 'active' });
+          sessions.add(reservation, session);
+        } catch (error) { sessions.release(reservation); throw error; }
         try { traces.start(sessionId, threadId, adapter, session.diagnostics); trace(session, 'session.start', { state: adapter }); trace(session, 'session.voice', { state: voice ?? 'default' }); trace(session, 'context.policy', { state: session.backgroundMode }); trace(session, 'diagnostics.policy', { state: session.diagnostics }); } catch { session.warn(); }
         try {
           const startup = session.backgroundMode === 'cached' ? await briefings.startupStatus(threadId) : undefined;
@@ -56,9 +60,9 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
           if (session.abort.signal.aborted) throw new Error('Voice call ended while connecting.');
           trace(session, 'session.connect', { state: 'negotiated' });
           return { sdp: answer, adapter, diagnostics: session.diagnostics, ...(session.backgroundMode === 'cached' ? { briefing: startupBriefing ? 'ready' as const : 'lookup' as const } : {}) };
-        } catch (error) { trace(session, 'session.failed', { reason: failureReason(error) }); await end(sessionId); throw error; }
+        } catch (error) { trace(session, 'session.failed', { reason: failureReason(error) }); await end(sessionId, session); throw error; }
       },
-      stop: async ({ sessionId }) => ({ stopped: await end(sessionId) }),
+      stop: async ({ sessionId }) => ({ stopped: sessions.cancel(sessionId) || await end(sessionId) }),
       control: async ({ sessionId }) => {
         const session = get(sessionId);
         if (session.adapter === 'delegated' && !session.job) return { requested: false };
@@ -93,7 +97,7 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
     const warnCleanup = rateLimitedWarning(() => bb.log.warn('Voice trace retention cleanup failed'));
     const timer = setInterval(() => { try { traces.prune(); briefings.prune(); } catch { warnCleanup(); } for (const session of sessions.all()) if (Date.now() - session.touched > 60000) void end(session.id); }, 10000);
     timer.unref?.();
-    bb.onDispose(async () => { clearInterval(timer); await briefings.dispose(); await Promise.all(sessions.ids().map(end)); });
+    bb.onDispose(async () => { clearInterval(timer); sessions.close(); await briefings.dispose(); await Promise.all(sessions.ids().map(id => end(id))); });
     const terminal = async ({ thread }: { thread: { id: string } }) => { briefings.forget(thread.id); await Promise.all(sessions.forThread(thread.id).map(session => end(session.id))); };
     bb.events.on('thread.archived', terminal); bb.events.on('thread.deleted', terminal);
   };

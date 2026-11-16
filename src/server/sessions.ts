@@ -16,6 +16,9 @@ export interface Session {
   nativeSignal: WakeSignal; nativeCursor: number; nativeWorking: boolean; notifying: boolean;
 }
 
+/** A call slot claimed synchronously when start begins, before any await, and held until the session registers. */
+export interface Reservation { readonly sessionId: string; readonly threadId: string; cancelled: boolean; }
+
 export type SessionInit = Pick<Session, 'id' | 'threadId' | 'adapter' | 'backgroundMode' | 'title' | 'diagnostics' | 'warn' | 'nativeWorking'>;
 
 export function newSession(init: SessionInit): Session {
@@ -32,7 +35,8 @@ export type SessionRegistry = ReturnType<typeof createSessionRegistry>;
  */
 export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces: Pick<ReturnType<typeof createTraceStore>, 'write'>, stopNative: (threadId: string, sessionId: string) => Promise<unknown>) {
   const sessions = new Map<string, Session>();
-  let traceSequence = 0;
+  const reservations = new Map<string, Reservation>();
+  let closed = false, traceSequence = 0;
   function trace(session: Session, name: string, data: TraceData | (() => TraceData) = {}): void {
     if (!acceptsTrace(name, session.diagnostics)) return;
     const selected = selectTrace(name, typeof data === 'function' ? data() : data, session.diagnostics);
@@ -59,9 +63,10 @@ export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces:
     for (const job of session.running) job.signal.notify();
     session.nativeSignal.notify();
   }
-  async function end(id: string): Promise<boolean> {
+  /** Ends a registered session. With `expected`, ends it only if that exact session is still registered. */
+  async function end(id: string, expected?: Session): Promise<boolean> {
     const session = sessions.get(id);
-    if (!session) return false;
+    if (!session || (expected && session !== expected)) return false;
     trace(session, 'session.stop');
     sessions.delete(id); session.abort.abort(); session.job?.abort.abort();
     if (session.adapter === 'native') await stopNative(session.threadId, id).catch(() => {});
@@ -74,11 +79,39 @@ export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces:
   }
   return {
     trace, changed, emit, end, get, wake,
-    assertCanOpen(sessionId: string, threadId: string): void {
-      if (sessions.has(sessionId) || [...sessions.values()].some(session => session.threadId === threadId)) throw new Error('This thread already has a Tandem call. End it first.');
-      if (sessions.size >= 4) throw new Error('Four Tandem calls are already open. End a call first.');
+    /** Claims the session ID, the thread and one of four call slots. Must run before the first await in start. */
+    reserve(sessionId: string, threadId: string): Reservation {
+      if (closed) throw new Error('Tandem is shutting down. Start voice again.');
+      const claimed = [...sessions.values(), ...reservations.values()].map(entry => 'id' in entry ? { sessionId: entry.id, threadId: entry.threadId } : entry);
+      if (claimed.some(entry => entry.sessionId === sessionId || entry.threadId === threadId)) throw new Error('This thread already has a Tandem call. End it first.');
+      if (claimed.length >= 4) throw new Error('Four Tandem calls are already open. End a call first.');
+      const reservation: Reservation = { sessionId, threadId, cancelled: false };
+      reservations.set(sessionId, reservation);
+      return reservation;
     },
-    add(session: Session): void { sessions.set(session.id, session); },
+    /** Releases an unfulfilled reservation. A stale reservation never releases a newer claim. */
+    release(reservation: Reservation): void {
+      if (reservations.get(reservation.sessionId) === reservation) reservations.delete(reservation.sessionId);
+    },
+    /** Cancels a pending start for this session ID. Its start fails once its current await returns. */
+    cancel(sessionId: string): boolean {
+      const reservation = reservations.get(sessionId);
+      if (!reservation) return false;
+      reservation.cancelled = true; reservations.delete(sessionId);
+      return true;
+    },
+    /** Converts a reservation into a registered session, unless it was cancelled meanwhile. */
+    add(reservation: Reservation, session: Session): void {
+      if (reservation.cancelled || reservations.get(reservation.sessionId) !== reservation) throw new Error('Voice call ended while connecting.');
+      reservations.delete(reservation.sessionId);
+      sessions.set(session.id, session);
+    },
+    /** Stops accepting calls and cancels pending starts; callers then end the registered sessions. */
+    close(): void {
+      closed = true;
+      for (const reservation of reservations.values()) reservation.cancelled = true;
+      reservations.clear();
+    },
     all(): IterableIterator<Session> { return sessions.values(); },
     ids(): string[] { return [...sessions.keys()]; },
     forThread(threadId: string): Session[] { return [...sessions.values()].filter(session => session.threadId === threadId); },
