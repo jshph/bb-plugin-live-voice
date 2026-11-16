@@ -35,7 +35,6 @@ function Voice({ threadId, signal }: { threadId: string; signal: AbortSignal }) 
   const delivered = useRef(new Set<string>());
   const conversation = useRef(new SpokenConversation());
   const submissions = useRef(new Map<string, { timer: ReturnType<typeof setTimeout>; send(): void }>());
-  const contextRequested = useRef(false);
   const adapter = useRef<'native' | 'delegated'>('delegated');
   const afterSeq = useRef(0);
   const diagnostics = useRef<BrowserTrace | null>(null);
@@ -55,7 +54,6 @@ function Voice({ threadId, signal }: { threadId: string; signal: AbortSignal }) 
   const apply = (result: Awaited<ReturnType<typeof rpc.call<'poll'>>>, current: VoiceClient) => {
     if (client.current !== current) return;
     if (result.ended) { current.stop(result.ended); return; }
-    if (result.backgroundContext) current.addBackgroundContext(result.backgroundContext);
     for (const update of result.updates) {
       if (update.seq <= afterSeq.current) continue;
       if (diagnostics.current?.detailed || !delivered.current.has(update.id) || update.final) diagnostics.current?.record(diagnostics.current.detailed ? 'backing.received' : 'delivery.received', { id: update.id, updateSeq: update.seq, characters: update.text.length, final: update.final, channel: update.channel });
@@ -87,7 +85,7 @@ function Voice({ threadId, signal }: { threadId: string; signal: AbortSignal }) 
       setMessage('Voice needs microphone access in a supported browser over HTTPS.');
       return;
     }
-    delivered.current.clear(); conversation.current = new SpokenConversation(); contextRequested.current = false; afterSeq.current = 0; replyText.current.clear();
+    delivered.current.clear(); conversation.current = new SpokenConversation(); afterSeq.current = 0; replyText.current.clear();
     setMuted(false); setBlocked(false);
     let traceReady!: () => void;
     const ready = new Promise<void>(resolve => { traceReady = resolve; });
@@ -123,12 +121,6 @@ function Voice({ threadId, signal }: { threadId: string; signal: AbortSignal }) 
         conversation.current.consume(value);
         if (event.type === 'turn.done' && event.turn?.role === 'user') {
           for (const pending of [...submissions.current.values()]) pending.send();
-        }
-        if (event.type === 'turn.done' && event.turn?.role === 'assistant' && !contextRequested.current) {
-          contextRequested.current = true;
-          void rpc.call('context', { sessionId: next.sessionId }).then(result => {
-            if (client.current === next && result.text) next.addBackgroundContext(result.text);
-          }).catch(() => setMessage('Thread background was unavailable. Voice can still ask the backing agent.'));
         }
         if (event.type === 'delegation.created' && event.item?.type === 'delegation' && event.item.target === 'client' && event.item.id) {
           const id = event.item.id;

@@ -1,6 +1,5 @@
 import { failureReason, type Diagnostics } from '../shared/trace';
 import { describeVoiceEvent, type TraceSink } from './browser-trace';
-import { z } from "zod";
 
 export type VoiceRequest =
   | { action: "start"; sessionId: string; sdp: string }
@@ -28,14 +27,7 @@ export class VoiceClient {
   private peer: RTCPeerConnection | null = null;
   private stopped = false;
   private channel: RTCDataChannel | null = null;
-  private backgroundContext: string | null = null;
-  private contextSent = false;
-  private firstExchangeDone = false;
-  private inputActive = false;
-  private assistantActive = false;
-  private contextPending = false;
   private requested = false;
-  private lastGate = '';
   private heartbeat: ReturnType<typeof setInterval> | undefined;
   private heartbeatPending = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -99,7 +91,7 @@ export class VoiceClient {
         }
       };
       this.channel = peer.createDataChannel("oai-events");
-      this.channel.onopen = () => { this.options.trace?.("datachannel.open"); this.flushBackgroundContext(); };
+      this.channel.onopen = () => this.options.trace?.("datachannel.open");
       this.channel.onmessage = (event) => {
         if (this.stopped) return;
         let value: unknown;
@@ -111,39 +103,6 @@ export class VoiceClient {
         const diagnostic = this.options.trace ? describeVoiceEvent(value, this.options.diagnostics?.() ?? 'basic') : null;
         if (diagnostic) this.options.trace?.("realtime.received", diagnostic);
         this.options.event?.(value);
-        const parsed = z
-          .object({
-            type: z.string(),
-            item: z.object({ text: z.string().optional() }).optional(),
-            turn: z.object({ role: z.string().optional() }).optional(),
-          })
-          .safeParse(value);
-        if (!parsed.success) return;
-        if (
-          parsed.data.type === "input_transcript.added" &&
-          parsed.data.item?.text?.trim()
-        ) {
-          this.inputActive = true;
-        }
-        if (
-          parsed.data.type === "output_transcript.added" ||
-          (parsed.data.type === "turn.created" &&
-            parsed.data.turn?.role === "assistant")
-        )
-          this.assistantActive = true;
-        if (parsed.data.type === "turn.done") {
-          if (parsed.data.turn?.role === "user") this.inputActive = false;
-          if (parsed.data.turn?.role === "assistant") {
-            this.assistantActive = false;
-            this.firstExchangeDone = true;
-            this.flushBackgroundContext();
-          }
-        }
-        if (parsed.data.type === "session.context.appended") {
-          this.options.trace?.("context.acknowledged", { contextPending: this.contextPending });
-          this.contextPending = false;
-          this.flushBackgroundContext();
-        }
       };
       const offer = await peer.createOffer();
       if (this.stopped) return;
@@ -184,65 +143,6 @@ export class VoiceClient {
     }
   }
 
-  addBackgroundContext(text: string): void {
-    if (this.stopped || this.contextSent || this.backgroundContext || !text)
-      return;
-    this.options.trace?.("context.queued", { characters: text.length });
-    this.backgroundContext = text;
-    this.flushBackgroundContext();
-  }
-
-  private flushBackgroundContext(): void {
-    if (this.backgroundContext && this.options.diagnostics?.() === 'detailed') {
-      const gate = [this.inputActive, this.assistantActive, this.firstExchangeDone, this.contextPending].join(',');
-      if (gate !== this.lastGate) { this.lastGate = gate; this.options.trace?.('context.gate', { inputActive: this.inputActive, assistantActive: this.assistantActive, firstExchangeDone: this.firstExchangeDone, contextPending: this.contextPending }); }
-    }
-    if (
-      this.stopped ||
-      this.contextSent ||
-      !this.firstExchangeDone ||
-      this.contextPending ||
-      this.inputActive ||
-      this.assistantActive ||
-      !this.backgroundContext ||
-      this.channel?.readyState !== "open"
-    )
-      return;
-    const encoder = new TextEncoder();
-    let chunk = "";
-    let bytes = 0;
-    for (const character of this.backgroundContext) {
-      const length = encoder.encode(character).length;
-      if (bytes + length > 500) break;
-      chunk += character;
-      bytes += length;
-    }
-    try {
-      this.contextPending = true;
-      this.channel.send(
-        JSON.stringify({
-          type: "session.context.append",
-          channel: "developer",
-          content: [{ type: "input_text", text: chunk }],
-        }),
-      );
-      this.options.trace?.("context.sent", () => ({ channel: "developer", text: chunk, bytes }));
-      this.backgroundContext = this.backgroundContext.slice(chunk.length);
-      if (!this.backgroundContext) {
-        this.contextSent = true;
-        this.backgroundContext = null;
-      }
-    } catch {
-      this.options.trace?.("context.failed", { characters: this.backgroundContext?.length ?? 0 });
-      this.contextSent = true;
-      this.backgroundContext = null;
-      this.options.state(
-        "active",
-        "Background context could not be delivered. Voice can still consult the coding agent.",
-      );
-    }
-  }
-
   sendResult(id: string, text: string, channel: 'speakable' | 'developer' = 'speakable', updateSeq?: number): void {
     if (this.stopped || this.channel?.readyState !== 'open') { this.options.trace?.("delegation.unsent", { id, characters: text.length, state: this.channel?.readyState ?? "absent" }); return; }
     for (const chunk of utf8Chunks(text)) {
@@ -270,7 +170,6 @@ export class VoiceClient {
       track.stop();
     });
     this.stream = null;
-    this.backgroundContext = null;
     if (this.channel) {
       this.channel.onopen = null;
       this.channel.onmessage = null;

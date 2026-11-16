@@ -1,17 +1,7 @@
 import { expect, it } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { compactBriefing } from './background';
 import { createPlugin } from '../index';
-
-it('bounds the latest-answer briefing and excludes fenced implementation blocks', () => {
-  const text = compactBriefing('Test', 'Confirmed result.\n```sh\nraw terminal output\n```\n' + 'a'.repeat(4000));
-  expect(text).toContain('Confirmed result.');
-  expect(text).not.toContain('raw terminal output');
-  expect(text).toContain('Excerpt shortened');
-  expect(text!.length).toBeLessThan(2400);
-  expect(compactBriefing('Test', '```sh\nonly code\n```')).toBeNull();
-});
 
 for (const providerId of ['codex', 'claude']) for (const mode of [false, true]) {
   it(`${providerId} freezes cachedBriefing=${mode} policy for the call and applies it to both context delivery paths`, async () => {

@@ -17,36 +17,18 @@ function fixture() {
 }
 
 describe('browser voice lifecycle', () => {
-  it('defers quiet background until the first exchange and pauses while the user speaks', async () => {
-    const { client, sent, event } = fixture();
-    try {
-      await client.start();
-      client.addBackgroundContext('x'.repeat(1500));
-      expect(sent).toHaveLength(0);
-      event({ type: 'turn.done', turn: { role: 'assistant' } });
-      expect(sent).toHaveLength(1);
-      expect(sent[0]).toMatchObject({ type: 'session.context.append', channel: 'developer' });
-      event({ type: 'input_transcript.added', item: { text: 'question' } });
-      event({ type: 'session.context.appended' });
-      expect(sent).toHaveLength(1);
-      event({ type: 'turn.done', turn: { role: 'user' } });
-      event({ type: 'turn.done', turn: { role: 'assistant' } });
-      expect(sent).toHaveLength(2);
-    } finally { client.stop(); }
-  });
-  it('traces exact context chunks and acknowledgements while only observing turn boundaries', async () => {
+  it('never appends background context mid-call while still observing turn boundaries', async () => {
     const { client, sent, event, traces } = fixture();
     try {
       await client.start();
-      client.addBackgroundContext('α'.repeat(400));
+      expect('addBackgroundContext' in client).toBe(false);
       event({ type: 'turn.done', turn: { role: 'assistant' } });
-      expect(traces.filter(trace => trace.name === 'context.sent')).toMatchObject([{ data: { text: 'α'.repeat(250), bytes: 500 } }]);
       event({ type: 'session.context.appended' });
-      expect(traces.filter(trace => trace.name === 'context.acknowledged')).toMatchObject([{ data: { contextPending: true } }]);
-      expect(traces.filter(trace => trace.name === 'context.sent').map(trace => trace.data?.text).join('')).toBe('α'.repeat(400));
-      expect(sent.map(message => message.type)).toEqual(['session.context.append', 'session.context.append']);
+      event({ type: 'input_transcript.added', item: { text: 'question' } });
       event({ type: 'turn.done', turn: { role: 'user' } });
-      expect(sent).toHaveLength(2);
+      event({ type: 'turn.done', turn: { role: 'assistant' } });
+      expect(sent.some(message => message.type === 'session.context.append')).toBe(false);
+      expect(traces.some(trace => /^context\./.test(trace.name))).toBe(false);
       expect(traces.some(trace => trace.name === 'realtime.received' && trace.data?.role === 'user')).toBe(true);
     } finally { client.stop(); }
   });

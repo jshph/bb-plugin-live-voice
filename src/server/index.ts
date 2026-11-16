@@ -66,16 +66,17 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
         session.job?.signal.notify(); session.nativeSignal.notify(); changed(session);
         return { requested: true };
       },
+      // Retired mid-call background delivery. Kept for existing callers; cached context is startup-only.
       context: async ({ sessionId }) => {
-        const session = get(sessionId);
-        return { text: session.backgroundContext };
+        get(sessionId);
+        return { text: null };
       },
       poll: async ({ sessionId, afterSeq }) => {
         const session = get(sessionId);
         if (session.adapter === 'native') await nativeConnect(bb, session.threadId, { action: 'keepAlive', sessionId });
         if (session.job || session.nativeWorking) session.attention = (await bb.sdk.threads.interactions.list({ threadId: session.threadId })).length > 0;
         if (afterSeq !== undefined && session.updates.length && afterSeq < session.updates[0]!.seq - 1) throw new Error('Voice updates expired before delivery. Restart voice and check the complete backing answer in BB.');
-        return { updates: session.updates.filter(update => update.seq > (afterSeq ?? 0) && !session.superseded.has(update.id)), state: session.attention ? 'attention' as const : (session.job || session.nativeWorking) ? 'working' as const : 'ready' as const, backgroundContext: session.backgroundContext, ended: session.ended };
+        return { updates: session.updates.filter(update => update.seq > (afterSeq ?? 0) && !session.superseded.has(update.id)), state: session.attention ? 'attention' as const : (session.job || session.nativeWorking) ? 'working' as const : 'ready' as const, backgroundContext: null, ended: session.ended };
       },
       delegate: ({ sessionId, id, text, turns }) => {
         const session = get(sessionId);
