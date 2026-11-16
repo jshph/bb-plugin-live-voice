@@ -129,6 +129,9 @@ describe('voice launch surfaces', () => {
     expect(document.querySelector('section[aria-label="Live voice call"]')).toBeNull();
     expect(launcher.getByRole('button', { name: 'End call' })).toBeTruthy();
     expect(launcher.getByRole('button', { name: 'Mute microphone' })).toBeTruthy();
+    // The waveform keeps the launcher's right-anchored position; controls appear to its left.
+    const waveformStatus = launcher.getByRole('status', { name: 'Voice connected' });
+    expect(waveformStatus.parentElement?.lastElementChild).toBe(waveformStatus);
     fireEvent.click(launcher.getByRole('status', { name: 'Voice connected' }));
     expect(launcher.getByRole('button', { name: 'End call' })).toBeTruthy();
     expect(launcher.queryByRole('button', { name: 'Voice connected' })).toBeNull();

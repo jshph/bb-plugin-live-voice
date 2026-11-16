@@ -179,10 +179,9 @@ function CallControls({ compact = false }: { compact?: boolean }) {
   const buttonClass = compact ? controlClass.replace('size-11', 'size-9') : controlClass;
   const waveform = status === 'active' ? ui?.speaking ? 'speaking' : ui?.muted ? 'muted' : 'listening' : status === 'connecting' ? 'connecting' : 'idle';
   const label = status === 'connecting' ? 'Connecting voice…' : status === 'closed' ? 'Voice disconnected' : 'Voice connected';
+  // Controls grow leftward so the waveform stays where the launcher was clicked.
   return <div className="relative flex shrink-0 items-center gap-1">
-    <span role="status" aria-label={label} title={ui?.muted ? `${label} · Microphone muted` : label} className={`live-voice-trigger ${buttonClass.replace(' hover:bg-muted', '')} ${status === 'active' && (!ui?.muted || ui.speaking) ? 'text-primary' : 'text-muted-foreground'}`} data-voice-state={waveform} data-speaking={ui?.speaking || undefined}>
-      <Waveform state={waveform} />
-    </span>
+    {ui?.blocked ? <button type="button" className="rounded-md px-2 py-2 text-xs hover:bg-muted" onClick={ui.enableAudio}>Enable audio</button> : null}
     <div role="group" aria-label="Voice controls" className="live-voice-controls flex items-center gap-1">
       {status === 'closed' ? <button type="button" className={buttonClass} aria-label="Reconnect voice" title="Reconnect voice" onClick={ui?.retry}><Waveform /></button> : <button type="button" className={buttonClass} aria-label={ui?.muted ? 'Unmute microphone' : 'Mute microphone'} title={ui?.muted ? 'Unmute microphone' : 'Mute microphone'} aria-pressed={ui?.muted ?? false} disabled={!ui || status !== 'active'} onClick={ui?.toggleMute}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8" />{ui?.muted ? <path d="m3 3 18 18" /> : null}</svg>
@@ -191,7 +190,9 @@ function CallControls({ compact = false }: { compact?: boolean }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden="true"><path d="M4 15v-4c4-4 12-4 16 0v4h-5v-4M9 11v4H4" /></svg>
       </button>
     </div>
-    {ui?.blocked ? <button type="button" className="rounded-md px-2 py-2 text-xs hover:bg-muted" onClick={ui.enableAudio}>Enable audio</button> : null}
+    <span role="status" aria-label={label} title={ui?.muted ? `${label} · Microphone muted` : label} className={`live-voice-trigger ${buttonClass.replace(' hover:bg-muted', '')} ${status === 'active' && (!ui?.muted || ui.speaking) ? 'text-primary' : 'text-muted-foreground'}`} data-voice-state={waveform} data-speaking={ui?.speaking || undefined}>
+      <Waveform state={waveform} />
+    </span>
     {ui?.message ? <span role="alert" className="absolute bottom-full right-0 mb-16 w-64 rounded-xl border bg-background p-3 text-xs shadow-lg">{ui.message}</span> : null}
   </div>;
 }
