@@ -7,10 +7,11 @@ import { acceptsTrace, selectTrace, type Diagnostics, type TraceData } from '../
 export type BackgroundMode = 'off' | 'cached';
 
 export type Update = { seq: number; id: string; text: string; channel: 'speakable' | 'developer'; final: boolean };
-export interface Job { id: string; abort: AbortController; signal: WakeSignal; reply: DelegationReply; finished: boolean; emitted: boolean; }
+/** One delegated request. `decided` resolves once the backing thread accepts or rejects it, or its run ends. */
+export interface Job { id: string; abort: AbortController; signal: WakeSignal; reply: DelegationReply; finished: boolean; emitted: boolean; decided: Promise<void>; decide(): void; }
 export interface Session {
   id: string; threadId: string; adapter: 'native' | 'delegated'; abort: AbortController; touched: number; startedAt: number; backgroundMode: BackgroundMode; title: string | null; diagnostics: Diagnostics; warn(): void;
-  updates: Update[]; sequence: number; superseded: Set<string>; seen: Set<string>; job: Job | null; attention: boolean;
+  updates: Update[]; sequence: number; superseded: Set<string>; seen: Set<string>; job: Job | null; running: Set<Job>; attention: boolean;
   context: DelegationContext; ended: string | null;
   nativeSignal: WakeSignal; nativeCursor: number; nativeWorking: boolean; notifying: boolean;
 }
@@ -18,7 +19,7 @@ export interface Session {
 export type SessionInit = Pick<Session, 'id' | 'threadId' | 'adapter' | 'backgroundMode' | 'title' | 'diagnostics' | 'warn' | 'nativeWorking'>;
 
 export function newSession(init: SessionInit): Session {
-  return { id: init.id, threadId: init.threadId, adapter: init.adapter, abort: new AbortController(), touched: Date.now(), startedAt: Date.now(), backgroundMode: init.backgroundMode, title: init.title, diagnostics: init.diagnostics, warn: init.warn, updates: [], sequence: 0, superseded: new Set(), seen: new Set(), job: null, attention: false, context: new DelegationContext(), ended: null, nativeSignal: new WakeSignal(), nativeCursor: 0, nativeWorking: init.nativeWorking, notifying: false };
+  return { id: init.id, threadId: init.threadId, adapter: init.adapter, abort: new AbortController(), touched: Date.now(), startedAt: Date.now(), backgroundMode: init.backgroundMode, title: init.title, diagnostics: init.diagnostics, warn: init.warn, updates: [], sequence: 0, superseded: new Set(), seen: new Set(), job: null, running: new Set(), attention: false, context: new DelegationContext(), ended: null, nativeSignal: new WakeSignal(), nativeCursor: 0, nativeWorking: init.nativeWorking, notifying: false };
 }
 
 /** Session state changes that the Claude runner and native observer report back to the registry. */
@@ -53,6 +54,11 @@ export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces:
     while (session.updates.length > 512 || session.updates.reduce((sum, update) => sum + update.text.length, 0) > 128000) session.updates.shift();
     changed(session);
   }
+  /** Wakes every observer of the session's thread, including superseded requests still awaiting acceptance. */
+  function wake(session: Session): void {
+    for (const job of session.running) job.signal.notify();
+    session.nativeSignal.notify();
+  }
   async function end(id: string): Promise<boolean> {
     const session = sessions.get(id);
     if (!session) return false;
@@ -67,7 +73,7 @@ export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces:
     session.touched = Date.now(); return session;
   }
   return {
-    trace, changed, emit, end, get,
+    trace, changed, emit, end, get, wake,
     assertCanOpen(sessionId: string, threadId: string): void {
       if (sessions.has(sessionId) || [...sessions.values()].some(session => session.threadId === threadId)) throw new Error('This thread already has a Tandem call. End it first.');
       if (sessions.size >= 4) throw new Error('Four Tandem calls are already open. End a call first.');
