@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
-import { BrowserTrace, describeVoiceEvent, type TraceEntry } from '../shared/trace';
+import type { TraceEntry } from '../shared/trace';
 import { createPlugin } from './index';
 import { createTraceStore } from './trace-store';
 
@@ -8,26 +8,6 @@ const sessionId = 'a77bc81a-9777-466c-b231-e04784794cf6';
 const entry: TraceEntry = { seq: 1, at: 100, elapsedMs: 5, name: 'context.sent', data: { text: 'quoted background', channel: 'developer', bytes: 17 } };
 
 describe('diagnostic tracing', () => {
-  it('selects transcript/turn data without recording audio, SDP, credentials or unrelated payloads', () => {
-    expect(describeVoiceEvent({ type: 'output_audio.delta', delta: 'audio bytes' })).toBeNull();
-    expect(describeVoiceEvent({ type: 'session.created', sdp: 'secret' })).toBeNull();
-    expect(describeVoiceEvent({ type: 'turn.done', turn: { role: 'user', id: 'turn' }, token: 'secret', sdp: 'secret' })).toEqual({ type: 'turn.done', role: 'user', id: 'turn' });
-    expect(describeVoiceEvent({ type: 'output_transcript.added', item: { text: 'hello', id: 'speech' }, audio: 'bytes' }, 'detailed')).toEqual({ type: 'output_transcript.added', id: 'speech', text: 'hello', characters: 5, truncated: false });
-    expect(describeVoiceEvent({ type: 'input_transcript.added', item: { text: 'x'.repeat(33000) } }, 'detailed')).toMatchObject({ characters: 33000, truncated: true, text: 'x'.repeat(32000) });
-  });
-  it('flushes ordered batches and marks failed batches with sequence gaps instead of blocking later delivery', async () => {
-    const batches: TraceEntry[][] = [];
-    const send = vi.fn(async (entries: TraceEntry[]) => { batches.push(entries); if (batches.length === 1) throw new Error('offline'); });
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const trace = new BrowserTrace(send); trace.configure('detailed');
-      for (let i = 0; i < 55; i++) trace.record('turn', { id: String(i) });
-      await trace.flush();
-      expect(batches.map(batch => batch.length)).toEqual([50, 5]);
-      expect(batches[1]![0]!.seq).toBe(51);
-      expect(warn).toHaveBeenCalledOnce();
-    } finally { warn.mockRestore(); }
-  });
   it('retains per-call traces after call end, with idempotent browser batches', async () => {
     const { bb, harness } = createFakePluginHost({ pluginId: 'live-voice', sdk: { threads: { get: async () => makeThreadResponse({ id: 'thread', providerId: 'claude', status: 'idle' }) } } });
     const plugin = createPlugin(async () => 'answer');
@@ -63,31 +43,6 @@ describe('diagnostic tracing', () => {
   });
 });
 
-it('basic browser diagnostics omit text and skip detailed payload construction before sending', async () => {
-  const batches: TraceEntry[][] = [];
-  const trace = new BrowserTrace(async entries => { batches.push(entries); });
-  const expensive = vi.fn(() => ({ text: 'private result' }));
-  for (let i = 0; i < 300; i++) trace.record('native.backing.delta', expensive);
-  trace.record('context.sent', { text: 'private background', bytes: 18 });
-  trace.record('adapter.selected', { state: 'native' });
-  trace.record('realtime.received', { type: 'session.context.appended' });
-  trace.record('realtime.received', { type: 'output_transcript.delta', text: 'private transcript' });
-  trace.record('realtime.received', { type: 'turn.done', role: 'user', text: 'private words' });
-  await trace.flush();
-  expect(expensive).not.toHaveBeenCalled();
-  expect(batches.flat().map(row => row.name)).toEqual(['context.sent', 'realtime.received']);
-  expect(JSON.stringify(batches)).not.toContain('private');
-  expect(describeVoiceEvent({ type: 'output_transcript.added', item: { text: 'private words' } })).toBeNull();
-  expect(describeVoiceEvent({ type: 'session.context.appended' }, 'detailed')).toBeNull();
-});
-it('detailed browser diagnostics retain exact chunks when explicitly enabled', async () => {
-  const batches: TraceEntry[][] = [];
-  const trace = new BrowserTrace(async entries => { batches.push(entries); });
-  trace.configure('detailed');
-  trace.record('delegation.sent', () => ({ text: 'Exact α chunk', bytes: 14, updateSeq: 8 }));
-  await trace.flush();
-  expect(batches.flat()[0]?.data).toEqual({ text: 'Exact α chunk', bytes: 14, updateSeq: 8 });
-});
 it('enforces the frozen diagnostics policy at ingestion, including after call end', async () => {
   const { bb, harness } = createFakePluginHost({ pluginId: 'live-voice', sdk: { threads: { get: async () => makeThreadResponse({ id: 'thread', providerId: 'claude', status: 'idle' }) } } });
   await createPlugin(async () => 'answer')(bb);
@@ -118,14 +73,6 @@ it('reserves capacity for stop and failure evidence after detailed content reach
     expect(store.list()).toMatchObject([{ dropped: expect.any(Number), bytes: expect.any(Number) }]);
     expect((store.list()[0] as { bytes: number }).bytes).toBeLessThanOrEqual(2_000_000);
   } finally { await harness.lifecycle.dispose(); }
-});
-it('rate-limits storage warnings while continuing later batches', async () => {
-  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  const trace = new BrowserTrace(async () => { throw new Error('storage offline'); });
-  try {
-    for (let i = 0; i < 4; i++) { trace.record('client.start'); await trace.flush(); }
-    expect(warn).toHaveBeenCalledOnce();
-  } finally { warn.mockRestore(); }
 });
 it('keeps native state observation while filtering diagnostic-only events in basic mode', async () => {
   const { bb, harness } = createFakePluginHost({ pluginId: 'live-voice', sdk: { threads: { get: async () => makeThreadResponse({ id: 'thread', providerId: 'codex', status: 'idle' }), events: { list: async () => [] } } } });

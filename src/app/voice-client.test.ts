@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { VoiceClient } from './voice-client';
+import { utf8Chunks, VoiceClient } from './voice-client';
 import type { TraceData } from '../shared/trace';
 
 function fixture() {
@@ -60,4 +60,11 @@ describe('browser voice lifecycle', () => {
     expect(channel.close).toHaveBeenCalledTimes(1);
     expect(request.mock.calls).toHaveLength(2);
   });
+});
+
+it('chunks Unicode handoffs without splitting code points', () => {
+  const text = 'a🙂é界'.repeat(250);
+  const chunks = utf8Chunks(text);
+  expect(chunks.join('')).toBe(text);
+  expect(chunks.every(chunk => new TextEncoder().encode(chunk).length <= 500)).toBe(true);
 });

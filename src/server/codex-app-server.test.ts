@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { requireSubscriptionAccount } from './codex';
+import { requireSubscriptionAccount } from './codex-app-server';
 
 it('accepts only Codex ChatGPT authentication', () => {
   expect(() => requireSubscriptionAccount({ account: { type: 'chatgpt' } })).not.toThrow();

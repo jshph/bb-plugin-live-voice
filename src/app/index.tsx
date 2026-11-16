@@ -6,9 +6,10 @@ import { createPortal } from 'react-dom';
 import { callAnchors, callUi } from './call-ui';
 import { observePlayback } from './playback';
 import { VoiceClient } from './voice-client';
-import { SpokenConversation } from '../shared/conversation';
-import { BrowserTrace } from '../shared/trace';
-import { createVoiceThread, supportsVoice, voiceCalls, voiceThreadRequest, type VoiceCall, type VoiceThread } from './voice-launch';
+import { SpokenConversation } from './spoken-conversation';
+import { BrowserTrace } from './browser-trace';
+import { supportsVoice } from '../shared/providers';
+import { createVoiceThread, voiceCalls, voiceThreadRequest, type VoiceCall, type VoiceThread } from './voice-launch';
 import './waveform.css';
 
 const eventSchema = z.object({

@@ -1,4 +1,5 @@
-import { describeVoiceEvent, failureReason, type Diagnostics, type TraceSink } from '../shared/trace';
+import { failureReason, type Diagnostics } from '../shared/trace';
+import { describeVoiceEvent, type TraceSink } from './browser-trace';
 import { z } from "zod";
 
 export type VoiceRequest =

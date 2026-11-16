@@ -1,4 +1,5 @@
 import type { ComposerSelection, PluginBrowserBbSdk } from '@get-bb/plugin-sdk/app';
+import { supportsVoice } from '../shared/providers';
 
 export type VoiceThread = { id: string; title: string | null; titleFallback?: string | null };
 type Threads = Pick<PluginBrowserBbSdk['threads'], 'spawn' | 'get'>;
@@ -9,10 +10,6 @@ export function voiceThreadRequest(selection: ComposerSelection | null) {
   }
   if (!supportsVoice(selection.providerId)) throw new Error('Tandem supports Codex and Claude threads.');
   return { ...selection, projectId: selection.projectId, environment: selection.environment, providerId: selection.providerId, input: [], title: 'Voice conversation' };
-}
-
-export function supportsVoice(providerId: string | undefined): boolean {
-  return providerId !== undefined && ['codex', 'claude-code', 'claude'].includes(providerId);
 }
 
 function wait(signal: AbortSignal): Promise<void> {

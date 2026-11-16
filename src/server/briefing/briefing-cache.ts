@@ -1,9 +1,9 @@
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { z } from 'zod';
-import { briefingEvidence, briefingRevision, startupReference, type Evidence } from './briefing';
+import type { BriefingStatus as Status } from '../../shared/contract';
+import { startupReference } from '../prompts';
+import { briefingEvidence, briefingRevision, type Evidence } from './briefing';
 
-export const briefingStatusSchema = z.object({ state: z.enum(['missing', 'busy', 'preparing', 'ready', 'stale', 'error']), generatedAt: z.number().nullable(), text: z.string().nullable(), error: z.string().nullable() });
-type Status = z.infer<typeof briefingStatusSchema>;
 const rowSchema = z.object({ revision: z.string().nullable(), generated_at: z.number().nullable(), text: z.string().nullable(), status: z.string(), error: z.string().nullable() });
 type Db = ReturnType<BbPluginApi['storage']['database']>;
 export function createBriefingCache(bb: BbPluginApi, db: Db, generate: (source: Evidence, signal: AbortSignal) => Promise<string>) {

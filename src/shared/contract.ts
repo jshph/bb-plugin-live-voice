@@ -2,7 +2,9 @@ import { defineRpcContract } from '@get-bb/plugin-sdk';
 import { z } from 'zod';
 import { spokenTurnSchema } from './conversation';
 import { diagnosticsSchema, traceEntrySchema } from './trace';
-import { briefingStatusSchema } from '../server/briefing/briefing-cache';
+
+export const briefingStatusSchema = z.object({ state: z.enum(['missing', 'busy', 'preparing', 'ready', 'stale', 'error']), generatedAt: z.number().nullable(), text: z.string().nullable(), error: z.string().nullable() });
+export type BriefingStatus = z.infer<typeof briefingStatusSchema>;
 
 const session = z.object({ sessionId: z.string().uuid() });
 export const rpcContract = defineRpcContract({

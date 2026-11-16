@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SpokenConversation } from './conversation';
+import { SpokenConversation } from './spoken-conversation';
 
 const delta = (role: 'user' | 'assistant', text: string) => ({ type: role === 'user' ? 'input_transcript.added' : 'output_transcript.added', item: { text } });
 const done = (role: 'user' | 'assistant', transcript?: string) => ({ type: 'turn.done', turn: { role, ...(transcript === undefined ? {} : { transcript }) } });

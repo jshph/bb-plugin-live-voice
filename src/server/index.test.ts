@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import { createPlugin } from './index';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { backendInstructions } from './delegation';
+import { backendInstructions } from './prompts';
 
 const sessionId = 'a77bc81a-9777-466c-b231-e04784794cf6';
 const input = { sessionId, threadId: 'th_test', sdp: 'offer' };

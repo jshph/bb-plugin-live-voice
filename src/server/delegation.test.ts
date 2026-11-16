@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { DelegationReply, DelegationContext, backendInstructions } from './delegation';
-import { utf8Chunks } from '../app/voice-client';
+import { DelegationReply, DelegationContext } from './delegation';
+import { backendInstructions } from './prompts';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];
 function row(type: string, turnId: string, data: unknown): Row {
@@ -42,12 +42,6 @@ describe('delegated replies', () => {
     reply.consume(agent('wanted', 'planning an action'));
     reply.consume(row('turn/completed', 'wanted', { status: 'interrupted' }));
     expect(reply.error).toContain('No successful result was confirmed');
-  });
-  it('chunks Unicode handoffs without splitting code points', () => {
-    const text = 'a🙂é界'.repeat(250);
-    const chunks = utf8Chunks(text);
-    expect(chunks.join('')).toBe(text);
-    expect(chunks.every(chunk => new TextEncoder().encode(chunk).length <= 500)).toBe(true);
   });
 });
 

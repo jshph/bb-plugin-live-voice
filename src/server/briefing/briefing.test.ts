@@ -1,7 +1,8 @@
 import { expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { briefingEvidence, briefingRevision, startupReference, validateBriefing } from './briefing';
+import { startupReference } from '../prompts';
+import { briefingEvidence, briefingRevision, validateBriefing } from './briefing';
 import { createBriefingCache } from './briefing-cache';
 import { createTraceStore } from '../trace-store';
 import { createPlugin } from '../index';
