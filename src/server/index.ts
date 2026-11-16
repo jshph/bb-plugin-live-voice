@@ -64,13 +64,23 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
           const startupBriefing = startup?.text;
           if (startup) trace(session, 'context.startup', () => ({ state: startup.state, reason: 'attempt', ...(startup.generatedAt ? { ageMs: Math.max(0, Date.now() - startup.generatedAt) } : {}), characters: startupBriefing?.length ?? 0, ...(startupBriefing ? { fingerprint: createHash('sha256').update(startupBriefing).digest('hex'), ...(session.diagnostics === 'detailed' ? { text: startupBriefing } : {}) } : {}) }));
           let answer: string;
+          const ended = () => { if (session.abort.signal.aborted) throw new Error('Voice call ended while connecting.'); };
           if (adapter === 'native') {
+            ended();
             const latest = await bb.sdk.threads.events.list({ threadId, order: 'desc', limit: '1' }); session.nativeCursor = latest[0]?.seq ?? 0;
-            const result = await nativeConnect(bb, threadId, { action: 'start', sessionId, sdp, ...(voice ? { experimental_voice: voice } : {}), experimental_startupBriefing: startupBriefing ?? null });
+            ended();
+            let result: { sdp: string | null };
+            try { result = await nativeConnect(bb, threadId, { action: 'start', sessionId, sdp, ...(voice ? { experimental_voice: voice } : {}), experimental_startupBriefing: startupBriefing ?? null }); }
+            finally {
+              // Stop already ran before this start reached the bridge, so stop the session it may have opened.
+              // Skip if a newer call reuses this session ID; the bridge ignores stops for other session IDs.
+              if (session.abort.signal.aborted && !sessions.claimed(sessionId)) await nativeConnect(bb, threadId, { action: 'stop', sessionId }).catch(() => {});
+            }
+            ended();
             if (!result.sdp) throw new Error('Native Codex did not return an SDP answer');
             answer = result.sdp;
             void observeNative(bb, session, sessions).catch(error => { if (!session.abort.signal.aborted) { session.ended = String(error); trace(session, 'session.failed', { reason: failureReason(error) }); changed(session); } });
-          } else answer = await openCall(sdp, startupBriefing ?? null, voice);
+          } else { ended(); answer = await openCall(sdp, startupBriefing ?? null, voice); }
           if (session.abort.signal.aborted) throw new Error('Voice call ended while connecting.');
           trace(session, 'session.connect', { state: 'negotiated' });
           return { sdp: answer, adapter, diagnostics: session.diagnostics, ...(session.backgroundMode === 'cached' ? { briefing: startupBriefing ? 'ready' as const : 'lookup' as const } : {}) };

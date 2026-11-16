@@ -100,6 +100,8 @@ export function createSessionRegistry(bb: Pick<BbPluginApi, 'realtime'>, traces:
       reservation.cancelled = true; reservations.delete(sessionId);
       return true;
     },
+    /** Whether a registered session or a pending start currently claims this session ID. */
+    claimed(sessionId: string): boolean { return sessions.has(sessionId) || reservations.has(sessionId); },
     /** Converts a reservation into a registered session, unless it was cancelled meanwhile. */
     add(reservation: Reservation, session: Session): void {
       if (reservation.cancelled || reservations.get(reservation.sessionId) !== reservation) throw new Error('Voice call ended while connecting.');
