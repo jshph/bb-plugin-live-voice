@@ -52,11 +52,11 @@ export function createPlugin(connect?: (sdp: string, startupBriefing?: string | 
           let answer: string;
           if (adapter === 'native') {
             const latest = await bb.sdk.threads.events.list({ threadId, order: 'desc', limit: '1' }); session.nativeCursor = latest[0]?.seq ?? 0;
-            const result = await nativeConnect(bb, threadId, { action: 'start', sessionId, sdp, ...(voice ? { experimental_voice: voice } : {}), ...(session.backgroundMode === 'cached' ? { experimental_startupBriefing: startupBriefing ?? null } : {}) });
+            const result = await nativeConnect(bb, threadId, { action: 'start', sessionId, sdp, ...(voice ? { experimental_voice: voice } : {}), experimental_startupBriefing: startupBriefing ?? null });
             if (!result.sdp) throw new Error('Native Codex did not return an SDP answer');
             answer = result.sdp;
             void observeNative(bb, session, sessions).catch(error => { if (!session.abort.signal.aborted) { session.ended = String(error); trace(session, 'session.failed', { reason: failureReason(error) }); changed(session); } });
-          } else answer = await openCall(sdp, startupBriefing, voice);
+          } else answer = await openCall(sdp, startupBriefing ?? null, voice);
           if (session.abort.signal.aborted) throw new Error('Voice call ended while connecting.');
           trace(session, 'session.connect', { state: 'negotiated' });
           return { sdp: answer, adapter, diagnostics: session.diagnostics, ...(session.backgroundMode === 'cached' ? { briefing: startupBriefing ? 'ready' as const : 'lookup' as const } : {}) };

@@ -24,16 +24,16 @@ for (const providerId of ['codex', 'claude']) for (const choice of ['default', '
       await harness.behavior.setSettings({ voice: 'spruce' });
       if (providerId === 'codex') {
         expect(detached).not.toHaveBeenCalled();
-        expect(native.mock.calls[0]).toEqual([bb, 'thread', { action: 'start', sessionId, sdp: 'offer', ...(choice === 'default' ? {} : { experimental_voice: choice }) }]);
+        expect(native.mock.calls[0]).toEqual([bb, 'thread', { action: 'start', sessionId, sdp: 'offer', ...(choice === 'default' ? {} : { experimental_voice: choice }), experimental_startupBriefing: null }]);
         expect(native).toHaveBeenCalledTimes(1);
       } else {
         expect(native).not.toHaveBeenCalled();
-        expect(detached.mock.calls).toEqual([['offer', undefined, choice === 'default' ? undefined : choice]]);
+        expect(detached.mock.calls).toEqual([['offer', null, choice === 'default' ? undefined : choice]]);
       }
       await harness.behavior.callRpc('stop', { sessionId });
       await harness.behavior.callRpc('start', start);
       if (providerId === 'codex') expect(native).toHaveBeenLastCalledWith(bb, 'thread', expect.objectContaining({ action: 'start', experimental_voice: 'spruce' }));
-      else expect(detached).toHaveBeenLastCalledWith('offer', undefined, 'spruce');
+      else expect(detached).toHaveBeenLastCalledWith('offer', null, 'spruce');
     } finally { await harness.lifecycle.dispose(); }
   });
 }

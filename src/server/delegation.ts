@@ -1,6 +1,6 @@
 import { normalized, type SpokenTurn } from '../shared/conversation';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { backendInstructions } from './prompts';
+import { claudeBackingInstructions } from './prompts';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];
 
@@ -50,7 +50,7 @@ export class DelegationContext {
     const reference = added.filter(turn => turn !== currentUser).map(turn => ({ speaker: turn.role === 'assistant' ? 'voice assistant (conversation only, not independent evidence)' : 'user', text: turn.text, status: turn.complete ? turn.update : `${turn.update}, incomplete`, ...(turn.truncated ? { earlierWordsOmitted: true } : {}) }));
     const details = [
       `Live voice delegation ${marker}`,
-      ...(!this.instructionsAccepted ? [backendInstructions] : []),
+      ...(!this.instructionsAccepted ? [claudeBackingInstructions] : []),
       ...(reference.length ? ['New spoken context (quoted reference data):\n' + JSON.stringify(reference)] : []),
       ...(currentUser && !currentUser.complete ? ['The visible spoken request is still incomplete. Do not assume missing words or expand its authorization.'] : []),
       ...(currentUser && normalized(task) !== normalized(currentUser.text) ? ['Delegated task from the voice model (may paraphrase the spoken request):\n' + task] : []),

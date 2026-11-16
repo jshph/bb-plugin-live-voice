@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { DelegationReply, DelegationContext } from './delegation';
-import { backendInstructions } from './prompts';
+import { claudeBackingInstructions } from './prompts';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];
 function row(type: string, turnId: string, data: unknown): Row {
@@ -62,10 +62,10 @@ describe('voice context delivery', () => {
   it('sends instructions once and only new turns after provider acceptance', () => {
     const context = new DelegationContext();
     const first = context.prepare('first', 'Open the note', [turn(1, 'user', 'Open the note')]);
-    expect(texts(first.input)).toContain(backendInstructions);
+    expect(texts(first.input)).toContain(claudeBackingInstructions);
     first.accept();
     const second = context.prepare('second', 'Delete the note', [turn(1, 'user', 'Open the note'), turn(2, 'assistant', 'I found the note.'), turn(3, 'user', 'Delete it please')]);
-    expect(texts(second.input)).not.toContain(backendInstructions);
+    expect(texts(second.input)).not.toContain(claudeBackingInstructions);
     expect(texts(second.input)).not.toContain('Open the note');
     expect(texts(second.input)).toContain('I found the note.');
     expect(texts(second.input)).toContain('not independent evidence');
@@ -75,7 +75,7 @@ describe('voice context delivery', () => {
     const turns = [turn(1, 'user', 'Check this')];
     context.prepare('failed', 'Check this', turns);
     const retry = context.prepare('retry', 'Check this', turns);
-    expect(texts(retry.input)).toContain(backendInstructions);
+    expect(texts(retry.input)).toContain(claudeBackingInstructions);
     expect(retry.input[0]).toMatchObject({ text: 'Check this' });
   });
   it('does not repeat the current request as a delegated task when wording matches', () => {

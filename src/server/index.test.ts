@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import { createPlugin } from './index';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { backendInstructions } from './prompts';
+import { claudeBackingInstructions } from './prompts';
 
 const sessionId = 'a77bc81a-9777-466c-b231-e04784794cf6';
 const input = { sessionId, threadId: 'th_test', sdp: 'offer' };
@@ -115,7 +115,7 @@ it('returns the final answer belonging to the accepted voice request', async () 
     await harness.behavior.callRpc('delegate', { sessionId, id: 'followup', text: 'Find conflicting evidence', turns: [{ seq: 1, role: 'user', text: 'What name was approved?', complete: true }, { seq: 2, role: 'user', text: 'Any conflicts?', complete: true }] });
     await vi.waitFor(async () => expect(await harness.behavior.callRpc('poll', { sessionId })).toMatchObject({ updates: expect.arrayContaining([expect.objectContaining({ id: 'followup', text: 'Slate Nine is approved; Juniper Four remains pending.' })]), state: 'ready' }));
     expect(requests[0]?.input[0]).toMatchObject({ text: 'What name was approved?' });
-    expect(requests[0]?.input[1]).toMatchObject({ visibility: 'agent-only', text: expect.stringContaining(backendInstructions) });
+    expect(requests[0]?.input[1]).toMatchObject({ visibility: 'agent-only', text: expect.stringContaining(claudeBackingInstructions) });
     expect(requests[1]?.input[0]).toMatchObject({ text: 'Any conflicts?' });
     const second = JSON.stringify(requests[1]?.input);
     expect(second).not.toContain('What name was approved?');

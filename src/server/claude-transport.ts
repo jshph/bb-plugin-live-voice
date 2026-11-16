@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { voiceSchema, type Voice } from '../shared/voices';
 import { CodexConnection, requireSubscriptionAccount } from './codex-app-server';
-import { claudeNoBriefing, voiceInstructions } from './prompts';
+import { claudeVoiceInstructions, noBriefing } from './prompts';
 
 /**
  * Negotiates subscription-authenticated browser audio for a Claude call through a temporary Codex
@@ -29,7 +29,7 @@ export async function createSubscriptionCall(sdp: string, command = 'codex', sta
     const [, result] = await Promise.all([
       connection.request('thread/realtime/start', {
         threadId: nativeThreadId, ...(voice ? { voice } : {}), transport: { type: 'webrtc', sdp }, version: 'v3', outputModality: 'audio', includeStartupContext: false,
-        clientManagedHandoffs: true, initialItems: [{ role: 'developer', text: voiceInstructions }, ...(startupBriefing === undefined ? [] : [{ role: 'developer', text: startupBriefing ?? claudeNoBriefing }])],
+        clientManagedHandoffs: true, initialItems: [{ role: 'developer', text: claudeVoiceInstructions }, ...(startupBriefing === undefined ? [] : [{ role: 'developer', text: startupBriefing ?? noBriefing }])],
       }), answer,
     ]);
     await connection.request('thread/realtime/stop', { threadId: nativeThreadId });
