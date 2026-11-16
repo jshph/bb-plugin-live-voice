@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
-import { BrowserTrace, describeVoiceEvent, type TraceEntry } from './trace';
-import { createPlugin } from './server';
+import { BrowserTrace, describeVoiceEvent, type TraceEntry } from '../shared/trace';
+import { createPlugin } from './index';
 import { createTraceStore } from './trace-store';
 
 const sessionId = 'a77bc81a-9777-466c-b231-e04784794cf6';

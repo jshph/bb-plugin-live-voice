@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { CodexConnection, requireSubscriptionAccount } from './codex';
+import { CodexConnection, requireSubscriptionAccount } from '../codex';
 import { briefingInstructions, briefingSchema, validateBriefing, type Evidence } from './briefing';
 
 export async function synthesizeBriefing(evidence: Evidence, command: string, signal: AbortSignal): Promise<string> {

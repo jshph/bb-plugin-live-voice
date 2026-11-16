@@ -1,4 +1,4 @@
-import { voiceSchema, type Voice } from './voices';
+import { voiceSchema, type Voice } from '../shared/voices';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';

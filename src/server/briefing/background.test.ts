@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { compactBriefing } from './background';
-import { createPlugin } from './server';
+import { createPlugin } from '../index';
 
 it('bounds the latest-answer briefing and excludes fenced implementation blocks', () => {
   const text = compactBriefing('Test', 'Confirmed result.\n```sh\nraw terminal output\n```\n' + 'a'.repeat(4000));

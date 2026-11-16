@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { VoiceClient } from './voice-client';
-import type { TraceData } from './trace';
+import type { TraceData } from '../shared/trace';
 
 function fixture() {
   const sent: Record<string, unknown>[] = [];

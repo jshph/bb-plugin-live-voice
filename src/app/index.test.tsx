@@ -25,7 +25,7 @@ const selection = {
   projectId: 'proj_selected', environment: { type: 'reuse' as const, environmentId: 'env_selected' },
   providerId: 'codex', model: 'selected-model', permissionMode: 'auto' as const, reasoningLevel: 'high' as const,
 };
-const app = await loadPluginApp(() => import('./app'));
+const app = await loadPluginApp(() => import('./index'));
 const action = app.composerCustomizations[0]!.actions![0]!;
 const overlay = app.appOverlays[0]!;
 const threadA = makeThreadResponse({ id: 'A', title: 'Thread A', status: 'idle', environmentId: 'env_selected' });

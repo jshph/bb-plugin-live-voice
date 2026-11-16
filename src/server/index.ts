@@ -1,17 +1,17 @@
-import { selectedVoice, voiceNames, type Voice } from './voices';
+import { selectedVoice, voiceNames, type Voice } from '../shared/voices';
 import { createHash, randomUUID } from 'node:crypto';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { z } from 'zod';
-import { rpcContract } from './contract';
+import { rpcContract } from '../shared/contract';
 import { createSubscriptionCall } from './codex';
-import type { SpokenTurn } from './conversation';
+import type { SpokenTurn } from '../shared/conversation';
 import { DelegationContext, DelegationReply } from './delegation';
 import { nativeVoice } from './native';
 import { WakeSignal } from './signals';
 import { createTraceStore } from './trace-store';
-import { acceptsTrace, failureReason, rateLimitedWarning, selectTrace, type Diagnostics, type TraceData } from './trace';
-import { createBriefingCache } from './briefing-cache';
-import { synthesizeBriefing } from './synthesize';
+import { acceptsTrace, failureReason, rateLimitedWarning, selectTrace, type Diagnostics, type TraceData } from '../shared/trace';
+import { createBriefingCache } from './briefing/briefing-cache';
+import { synthesizeBriefing } from './briefing/synthesize';
 
 type BackgroundMode = 'off' | 'cached';
 

@@ -1,4 +1,4 @@
-import type { Voice } from './voices';
+import type { Voice } from '../shared/voices';
 import { voiceStyleInstructions, backingInstructions } from './native-policy';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 

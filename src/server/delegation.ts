@@ -1,4 +1,4 @@
-import { normalized, type SpokenTurn } from './conversation';
+import { normalized, type SpokenTurn } from '../shared/conversation';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];

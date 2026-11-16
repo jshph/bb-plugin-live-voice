@@ -2,7 +2,7 @@ import { defineRpcContract } from '@get-bb/plugin-sdk';
 import { z } from 'zod';
 import { spokenTurnSchema } from './conversation';
 import { diagnosticsSchema, traceEntrySchema } from './trace';
-import { briefingStatusSchema } from './briefing-cache';
+import { briefingStatusSchema } from '../server/briefing/briefing-cache';
 
 const session = z.object({ sessionId: z.string().uuid() });
 export const rpcContract = defineRpcContract({

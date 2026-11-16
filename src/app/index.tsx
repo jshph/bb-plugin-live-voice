@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { definePluginApp, experimental_usePluginId, useBbNavigate, useComposer, useRpc, useRealtime, useSdk } from '@get-bb/plugin-sdk/app';
 import { z } from 'zod';
-import type { rpcContract } from './contract';
+import type { rpcContract } from '../shared/contract';
 import { createPortal } from 'react-dom';
 import { callAnchors, callUi } from './call-ui';
 import { observePlayback } from './playback';
 import { VoiceClient } from './voice-client';
-import { SpokenConversation } from './conversation';
-import { BrowserTrace } from './trace';
+import { SpokenConversation } from '../shared/conversation';
+import { BrowserTrace } from '../shared/trace';
 import { createVoiceThread, supportsVoice, voiceCalls, voiceThreadRequest, type VoiceCall, type VoiceThread } from './voice-launch';
 import './waveform.css';
 

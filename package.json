@@ -12,8 +12,8 @@
     "branding": {
       "icon": "AudioLines"
     },
-    "server": "./server.ts",
-    "app": "./app.tsx"
+    "server": "./src/server/index.ts",
+    "app": "./src/app/index.tsx"
   },
   "dependencies": {
     "zod": "^4.6.5"

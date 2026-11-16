@@ -1,5 +1,5 @@
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { diagnosticsSchema, selectTrace, type Diagnostics, type TraceEntry } from './trace';
+import { diagnosticsSchema, selectTrace, type Diagnostics, type TraceEntry } from '../shared/trace';
 
 export function createTraceStore(bb: BbPluginApi) {
   const db = bb.storage.database();

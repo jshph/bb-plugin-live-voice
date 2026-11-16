@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { DelegationReply, DelegationContext, backendInstructions } from './delegation';
-import { utf8Chunks } from './voice-client';
+import { utf8Chunks } from '../app/voice-client';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];
 function row(type: string, turnId: string, data: unknown): Row {

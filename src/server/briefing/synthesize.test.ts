@@ -2,8 +2,8 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { synthesizeBriefing } from './synthesize';
 
 const wire = vi.hoisted(() => ({ account: 'chatgpt', item: 'userMessage', disconnect: false, pending: false, calls: [] as string[] }));
-vi.mock('./codex', async original => {
-  const actual = await original<typeof import('./codex')>();
+vi.mock('../codex', async original => {
+  const actual = await original<typeof import('../codex')>();
   return { ...actual, CodexConnection: class {
     constructor(private notification: (method: string, params: unknown) => void, _command: string, private disconnected: (error: Error) => void) {}
     async request(method: string) {

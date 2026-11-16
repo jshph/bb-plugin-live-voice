@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
-import { createPlugin } from './server';
-import { selectedVoice } from './voices';
+import { createPlugin } from './index';
+import { selectedVoice } from '../shared/voices';
 
 it('keeps default absent and rejects voices from other protocols', () => {
   expect(selectedVoice(undefined)).toBeUndefined();

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
-import { createPlugin } from './server';
+import { createPlugin } from './index';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { backendInstructions } from './delegation';
 

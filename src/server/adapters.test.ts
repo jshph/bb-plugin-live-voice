@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/testing';
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
-import { createPlugin } from './server';
+import { createPlugin } from './index';
 import { nativeVoice, type NativeVoiceCommand } from './native';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];

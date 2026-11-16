@@ -3,9 +3,9 @@ import { createFakePluginHost, makeThreadResponse } from '@get-bb/plugin-sdk/tes
 import type { BbPluginApi } from '@get-bb/plugin-sdk';
 import { briefingEvidence, briefingRevision, startupReference, validateBriefing } from './briefing';
 import { createBriefingCache } from './briefing-cache';
-import { createTraceStore } from './trace-store';
-import { createPlugin } from './server';
-import type { NativeVoiceCommand } from './native';
+import { createTraceStore } from '../trace-store';
+import { createPlugin } from '../index';
+import type { NativeVoiceCommand } from '../native';
 
 type Row = Awaited<ReturnType<BbPluginApi['sdk']['threads']['events']['list']>>[number];
 const summary = JSON.stringify({ subject: 'Voice', goals: ['Keep continuity'], decisions: [], findings: [{ fact: 'Tool verified the build', evidence: [3] }], openQuestions: [] });
