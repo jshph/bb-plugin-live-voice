@@ -1,4 +1,4 @@
-> **Deprecated — development moved.** This repository has been replaced by [jshph/bb-extensions](https://github.com/jshph/bb-extensions), with the maintained plugin in [`plugins/tandem`](https://github.com/jshph/bb-extensions/tree/main/plugins/tandem). Use the new repository for updates and issues. This repository remains available for history, existing install URLs, and outstanding pull-request review. It has not been archived.
+> **Archived — development moved.** This repository has been replaced by [jshph/bb-extensions](https://github.com/jshph/bb-extensions), with the maintained plugin in [`plugins/tandem`](https://github.com/jshph/bb-extensions/tree/main/plugins/tandem). Use the new repository for updates and issues. This repository is archived and remains readable for history, existing install URLs, and earlier reviews. The startup and naming follow-up continues in [BB Extensions #1](https://github.com/jshph/bb-extensions/issues/1).
 
 # Tandem
 
