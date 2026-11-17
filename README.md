@@ -1,3 +1,5 @@
+> **Deprecated — development moved.** This repository has been replaced by [jshph/bb-extensions](https://github.com/jshph/bb-extensions), with the maintained plugin in [`plugins/tandem`](https://github.com/jshph/bb-extensions/tree/main/plugins/tandem). Use the new repository for updates and issues. This repository remains available for history, existing install URLs, and outstanding pull-request review. It has not been archived.
+
 # Tandem
 
 Talk with the coding agent in your BB thread. Tandem uses Codex subscription voice for the conversation while **Codex or Claude** does the coding work.
